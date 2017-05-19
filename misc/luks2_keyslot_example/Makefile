@@ -5,6 +5,7 @@ CC=gcc
 
 TARGET2=keyslot_test_remote_pass
 TARGET3=keyslot_test_keyring
+TARGET4=keyslot_add_by_key
 
 SOURCES=keyslot_test.c
 OBJECTS=$(SOURCES:.c=.o)
@@ -12,8 +13,10 @@ SOURCES2=keyslot_test_remote_pass.c
 OBJECTS2=$(SOURCES2:.c=.o)
 SOURCES3=keyslot_test_keyring.c
 OBJECTS3=$(SOURCES3:.c=.o)
+SOURCES4=keyslot_add_by_key.c
+OBJECTS4=$(SOURCES4:.c=.o)
 
-all: $(TARGET) $(TARGET2) $(TARGET3)
+all: $(TARGET) $(TARGET2) $(TARGET3) $(TARGET4)
 
 $(TARGET): $(OBJECTS) ../../lib/.libs/libcryptsetup.a
 	$(CC) -o $@ $^ $(LDLIBS)
@@ -24,7 +27,10 @@ $(TARGET2): $(OBJECTS2) ../../lib/.libs/libcryptsetup.a
 $(TARGET3): $(OBJECTS3) ../../lib/.libs/libcryptsetup.a
 	$(CC) -o $@ $^ $(LDLIBS)
 
+$(TARGET4): $(OBJECTS4) ../../lib/.libs/libcryptsetup.a
+	$(CC) -o $@ $^ $(LDLIBS)
+
 clean:
-	rm -f *.o *~ core $(TARGET) $(TARGET2) $(TARGET3)
+	rm -f *.o *~ core $(TARGET) $(TARGET2) $(TARGET3) $(TARGET4)
 
 .PHONY: clean
