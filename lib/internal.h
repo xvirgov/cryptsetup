@@ -120,6 +120,9 @@ int crypt_dev_is_partition(const char *dev_path);
 char *crypt_get_partition_device(const char *dev_path, uint64_t offset, uint64_t size);
 char *crypt_get_base_device(const char *dev_path);
 uint64_t crypt_dev_partition_offset(const char *dev_path);
+int lookup_dm_dev_by_uuid(const char *uuid, const char *type);
+int lookup_by_disk_id(const char *dm_uuid);
+int lookup_by_sysfs_uuid_field(const char *dm_uuid);
 
 ssize_t write_buffer(int fd, const void *buf, size_t count);
 ssize_t read_buffer(int fd, void *buf, size_t count);

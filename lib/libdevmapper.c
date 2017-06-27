@@ -35,6 +35,8 @@
 #include "internal.h"
 
 #define DM_UUID_LEN		129
+#define DM_BY_ID_PREFIX		"dm-uuid-"
+#define DM_BY_ID_PREFIX_LEN	8
 #define DM_UUID_PREFIX		"CRYPT-"
 #define DM_UUID_PREFIX_LEN	6
 #define DM_CRYPT_TARGET		"crypt"
@@ -993,6 +995,31 @@ static int dm_prepare_uuid(const char *name, const char *type, const char *uuid,
 		log_err(NULL, _("DM-UUID for device %s was truncated.\n"), name);
 
 	return 1;
+}
+
+int lookup_dm_dev_by_uuid(const char *uuid, const char *type)
+{
+	int r;
+	char *c;
+	char dev_uuid[DM_UUID_LEN + DM_BY_ID_PREFIX_LEN] = DM_BY_ID_PREFIX;
+
+	if (!dm_prepare_uuid("", type, uuid, dev_uuid + DM_BY_ID_PREFIX_LEN, DM_UUID_LEN))
+		return -EINVAL;
+
+	c = strrchr(dev_uuid, '-');
+	if (!c)
+		return -EINVAL;
+
+	/* cut of dm name */
+	*c = '\0';
+
+	r = lookup_by_disk_id(dev_uuid);
+	if (r == -ENOENT) {
+		log_dbg("Search by disk id not available. Using sysfs instead.");
+		r = lookup_by_sysfs_uuid_field(dev_uuid + DM_BY_ID_PREFIX_LEN);
+	}
+
+	return r;
 }
 
 static int _dm_create_device(const char *name, const char *type,

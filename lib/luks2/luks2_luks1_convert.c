@@ -466,6 +466,17 @@ static int move_keyslot_areas(struct crypt_device *cd, off_t offset_from,
 	return 0;
 }
 
+static int luks_header_in_use(struct crypt_device *cd)
+{
+	int r;
+
+	r = lookup_dm_dev_by_uuid(crypt_get_uuid(cd), crypt_get_type(cd));
+	if (r < 0)
+		log_err(cd, _("Can not check status of device with uuid: %s.\n"), crypt_get_uuid(cd));
+
+	return r;
+}
+
 /* Convert LUKS1 -> LUKS2 */
 int LUKS2_luks1_to_luks2(struct crypt_device *cd, struct luks_phdr *hdr1, struct luks2_hdr *hdr2)
 {
@@ -518,17 +529,9 @@ int LUKS2_luks1_to_luks2(struct crypt_device *cd, struct luks_phdr *hdr1, struct
 	if (max_size < LUKS2_hdr_and_areas_size(hdr2->jobj))
 		return -EINVAL;
 
-	/*
-	 * FIXME:
-	 *
-	 * a) exclusive mode check doesn't mean it's not mapped via different node
-	 * b) check for UUID would conflict with device snaphosts...
-	 *
-	 * nor a) nor b) is ideal. Is there a better way?
-	 */
-	r = device_block_adjust(cd, crypt_data_device(cd), DEV_EXCL, 0, NULL, NULL);
+	r = luks_header_in_use(cd);
 	if (r)
-		return r;
+		return r > 0 ? -EBUSY : r;
 
 	// move keyslots 4k -> 32k offset
 	buf_offset = 2 * LUKS2_HDR_16K_LEN;
@@ -761,17 +764,9 @@ int LUKS2_luks2_to_luks1(struct crypt_device *cd, struct luks2_hdr *hdr2, struct
 
 	hdr1->version = 1;
 
-	/*
-	 * FIXME:
-	 *
-	 * a) exclusive mode check doesn't mean it's not mapped via different node
-	 * b) check for UUID would conflict with device snaphosts...
-	 *
-	 * nor a) nor b) is ideal. Is there a better way?
-	 */
-	r = device_block_adjust(cd, crypt_data_device(cd), DEV_EXCL, 0, NULL, NULL);
+	r = luks_header_in_use(cd);
 	if (r)
-		return r;
+		return r > 0 ? -EBUSY : r;
 
 	// move keyslots 32k -> 4k offset
 	buf_offset = 2 * LUKS2_HDR_16K_LEN;

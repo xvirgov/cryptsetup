@@ -3816,6 +3816,8 @@ int crypt_convert(struct crypt_device *cd,
 	if (r < 0) {
 		/* in-memory header may be invalid after failed conversion */
 		_luks2_reload(cd);
+		if (r == -EBUSY)
+			log_err(cd, _("Cannot convert device %s which is still in use.\n"), mdata_device_path(cd));
 		return r;
 	}
 

@@ -371,3 +371,87 @@ char *crypt_get_base_device(const char *dev_path)
 	snprintf(part_path, sizeof(part_path), "/dev/%s", devname);
 	return strdup(part_path);
 }
+
+int lookup_by_disk_id(const char *dm_uuid)
+{
+	struct dirent *entry;
+	struct stat st;
+	int r = 0; /* not found */
+	DIR *dir = opendir("/dev/disk/by-id");
+
+	if (!dir)
+		/* map ENOTDIR to ENOENT we'll handle both errors same */
+		return errno == ENOTDIR ? -ENOENT : -errno;
+
+	while ((entry = readdir(dir))) {
+		if (entry->d_name[0] == '.' ||
+		    !strncmp(entry->d_name, "..", 2))
+			continue;
+
+		if (fstatat(dirfd(dir), entry->d_name, &st, AT_SYMLINK_NOFOLLOW)) {
+			r = -EINVAL;
+			break;
+		}
+
+		if (!S_ISREG(st.st_mode) && !S_ISLNK(st.st_mode))
+			continue;
+
+		if (!strncmp(entry->d_name, dm_uuid, strlen(dm_uuid))) {
+			r = 1;
+			break;
+		}
+	}
+
+	closedir(dir);
+
+	return r;
+}
+
+int lookup_by_sysfs_uuid_field(const char *dm_uuid)
+{
+	FILE *file;
+	struct dirent *entry;
+	char subpath[PATH_MAX], *uuid = NULL;
+	size_t uuid_len = 0;
+	int fd, len, r = 0; /* not found */
+	DIR *dir = opendir("/sys/block/");
+
+	if (!dir)
+		/* map ENOTDIR to ENOENT we'll handle both errors same */
+		return errno == ENOTDIR ? -ENOENT : -errno;
+
+	while (r != 1 && (entry = readdir(dir))) {
+		if (entry->d_name[0] == '.' ||
+		    !strncmp(entry->d_name, "..", 2))
+			continue;
+
+		len = snprintf(subpath, PATH_MAX, "%s/%s", entry->d_name, "dm/uuid");
+		if (len < 0 || len >= PATH_MAX) {
+			r = -EINVAL;
+			break;
+		}
+
+		/* looking for dm-X/dm/uuid file, symlinks are fine */
+		fd = openat(dirfd(dir), subpath, O_RDONLY | O_CLOEXEC);
+		if (fd < 0)
+			continue;
+
+		file = fdopen(fd, "r");
+		if (!file) {
+			close(fd);
+			continue;
+		}
+
+		if (getline(&uuid, &uuid_len, file) > 0 && !strncmp(uuid, dm_uuid, strlen(dm_uuid)))
+			r = 1;
+
+		fclose(file);
+	}
+
+	closedir(dir);
+
+	if (uuid_len)
+		free(uuid);
+
+	return r;
+}
