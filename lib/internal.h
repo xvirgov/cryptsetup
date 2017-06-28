@@ -36,6 +36,7 @@
 #include "utils_loop.h"
 #include "utils_dm.h"
 #include "utils_fips.h"
+#include "utils_keyring.h"
 #include "crypto_backend.h"
 
 #include "libcryptsetup.h"
@@ -58,18 +59,22 @@ struct crypt_device;
 
 struct volume_key {
 	size_t keylength;
+	const char *key_description;
 	char key[];
 };
 
 struct volume_key *crypt_alloc_volume_key(size_t keylength, const char *key);
 struct volume_key *crypt_generate_volume_key(struct crypt_device *cd, size_t keylength);
 void crypt_free_volume_key(struct volume_key *vk);
+void crypt_volume_key_set_description(struct volume_key *key, const char *key_description);
+const char *crypt_volume_key_get_description(const struct volume_key *key);
 
 /* Device backend */
 struct device;
 int device_alloc(struct device **device, const char *path);
 void device_free(struct device *device);
 const char *device_path(const struct device *device);
+const char *device_dm_name(const struct device *device);
 const char *device_block_path(const struct device *device);
 void device_topology_alignment(struct device *device,
 			    unsigned long *required_alignment, /* bytes */
@@ -83,6 +88,13 @@ void device_disable_direct_io(struct device *device);
 int device_is_identical(struct device *device1, struct device *device2);
 int device_is_rotational(struct device *device);
 size_t device_alignment(struct device *device);
+int device_direct_io(struct device *device);
+
+int device_open_locked(struct device *device, int flags);
+int device_read_lock(struct crypt_device *cd, struct device *device);
+int device_write_lock(struct crypt_device *cd, struct device *device);
+void device_read_unlock(struct device *device);
+void device_write_unlock(struct device *device);
 
 enum devcheck { DEV_OK = 0, DEV_EXCL = 1, DEV_SHARED = 2 };
 int device_check_access(struct crypt_device *cd,
@@ -121,6 +133,8 @@ unsigned crypt_cpusonline(void);
 
 int init_crypto(struct crypt_device *ctx);
 
+const char *uint64_to_str(char *buffer, size_t size, const uint64_t *val);
+
 void logger(struct crypt_device *cd, int class, const char *file, int line, const char *format, ...) __attribute__ ((format (printf, 5, 6)));
 #define log_dbg(x...) logger(NULL, CRYPT_LOG_DEBUG, __FILE__, __LINE__, x)
 #define log_std(c, x...) logger(c, CRYPT_LOG_NORMAL, __FILE__, __LINE__, x)
@@ -131,6 +145,8 @@ int crypt_get_debug_level(void);
 
 int crypt_memlock_inc(struct crypt_device *ctx);
 int crypt_memlock_dec(struct crypt_device *ctx);
+
+int crypt_metadata_locking_enabled(void);
 
 int crypt_random_init(struct crypt_device *ctx);
 int crypt_random_get(struct crypt_device *ctx, char *buf, size_t len, int quality);
@@ -157,5 +173,8 @@ int crypt_wipe_device(struct crypt_device *cd,
 	size_t wipe_block_size,
 	int (*progress)(uint64_t size, uint64_t offset, void *usrptr),
 	void *usrptr);
+
+int crypt_key_in_keyring(struct crypt_device *cd);
+void crypt_set_key_in_keyring(struct crypt_device *cd, unsigned key_in_keyring);
 
 #endif /* INTERNAL_H */
