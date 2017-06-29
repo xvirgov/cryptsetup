@@ -76,6 +76,7 @@ function travis_install_script
 		autopoint \
 		gettext \
 		expect \
+		libjson-c-dev \
 		|| return
 }
 
