@@ -5,6 +5,7 @@ dist: trusty
 
 compiler:
   - gcc
+# add clang
 
 env:
   - MAKE_CHECK="gcrypt"

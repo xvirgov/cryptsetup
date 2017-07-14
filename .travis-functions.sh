@@ -36,7 +36,8 @@ function check_root
 	[ -z "$cfg_opts" ] && return
 
 	# FIXME: --enable-python does not work here
-	configure_travis \
+	# add python-devel
+    configure_travis \
 		--enable-cryptsetup-reencrypt \
 		"$cfg_opts" \
 		|| return
