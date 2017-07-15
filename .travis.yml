@@ -5,9 +5,10 @@ dist: trusty
 
 compiler:
   - gcc
-# add clang
+    # FIXME: add clang
 
 env:
+  - MAKE_CHECK="nonroot"
   - MAKE_CHECK="gcrypt"
   - MAKE_CHECK="openssl"
 

@@ -29,14 +29,34 @@ function configure_travis
 	return $err
 }
 
+function check_nonroot
+{
+
+    configure_travis \
+        --enable-python \
+        --enable-cryptsetup-reencrypt \
+        || return
+
+    $MAKE || return
+
+    sudo modprobe dm-crypt
+    sudo modprobe dm-verity
+    sudo modprobe dm-integrity
+    uname -a
+    sudo dmsetup version
+    sudo dmsetup targets
+
+    make check || return
+
+    #sudo $MAKE install || return
+}
+
 function check_root
 {
 	local cfg_opts="$1"
 
 	[ -z "$cfg_opts" ] && return
 
-	# FIXME: --enable-python does not work here
-	# add python-devel
     configure_travis \
         --enable-python \
 		--enable-cryptsetup-reencrypt \
@@ -99,6 +119,10 @@ function travis_script
 	set -o xtrace
 
 	case "$MAKE_CHECK" in
+	nonroot)
+		check_nonroot
+		;;
+
 	gcrypt)
 		check_root "--with-crypto_backend=gcrypt"
 		;;
