@@ -8,7 +8,6 @@ compiler:
     # FIXME: add clang
 
 env:
-  - MAKE_CHECK="nonroot"
   - MAKE_CHECK="gcrypt"
   - MAKE_CHECK="openssl"
 

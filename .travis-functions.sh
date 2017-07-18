@@ -31,10 +31,14 @@ function configure_travis
 
 function check_nonroot
 {
+    local cfg_opts="$1"
+
+	[ -z "$cfg_opts" ] && return
 
     configure_travis \
         --enable-python \
         --enable-cryptsetup-reencrypt \
+		"$cfg_opts" \
         || return
 
     $MAKE || return
@@ -119,15 +123,13 @@ function travis_script
 	set -o xtrace
 
 	case "$MAKE_CHECK" in
-	nonroot)
-		check_nonroot
-		;;
-
 	gcrypt)
+		check_nonroot "--with-crypto_backend=gcrypt"
 		check_root "--with-crypto_backend=gcrypt"
 		;;
 
 	openssl)
+		check_nonroot "--with-crypto_backend=openssl"
 		check_root "--with-crypto_backend=openssl"
 		;;
 	*)
